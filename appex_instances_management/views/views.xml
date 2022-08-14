@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="view_inherit_res_users_form" model="ir.ui.view">
+            <field name="name">view.inherit.res.users.form</field>
+            <field name="model">res.users</field>
+            <field name="inherit_id" ref="base.view_users_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//header//button" position="before">
+                    <button name="generate_access_token" class="oe_highlight" type="object" string="Generate Token"/>
+                </xpath>
+                <xpath expr="//group[@name='preferences']" position="after">
+                    <group name="appex_token">
+                        <field name="access_token" readonly="1"/>
+                    </group>
+                </xpath>
+
+            </field>
+        </record>
+        
+        <!-- Inherit Form View to Modify it -->
+        <record id="view_inherit_res_country_form" model="ir.ui.view">
+            <field name="name">view.inherit.res.country.form</field>
+            <field name="model">res.country</field>
+            <field name="inherit_id" ref="base.view_country_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- position: after|before|replace|attributes|inside -->
+                <xpath expr="//group[@name='country_details']" position="after">
+                    <group name="appex_settings" string="Appex Settings">
+                        <field name="module_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                </xpath>
+                
+            </field>
+        </record>
+
+        <record id="view_odoo_instance_management_form" model="ir.ui.view">
+            <field name="name">view.odoo.instances.management.form</field>
+            <field name="model">odoo.instances.management</field>
+            <field name="arch" type="xml">
+                <form string="Odoo Instances Management Form">
+                    <header>
+                        <button name="create_odoo_instance" string="Create Instance" class="oe_highlight" states="draft"
+                                type="object"/>
+                        <button name="run_odoo_instance" string="Run Instance" class="oe_highlight" states="draft,paused"
+                                type="object"/>
+                        <button name="restart_odoo_instance" string="Restart Instance" class="oe_highlight" states="running"
+                                type="object"/>
+                        <button name="pause_odoo_instance" string="Pause Instance" states="running" type="object"/>
+                        <button name="delete_odoo_instance" string="Delete Instance" states="paused" type="object"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,running,paused,deleted"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="name" class="oe_edit_only"/>
+                            <h1>
+                                <field name="name" placeholder="Instance Name" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="active" invisible="1"/>
+                                <field name="partner_id"/>
+                                <field name="port"/>
+                                <field name="instance_url" widget="url"/>
+                                <field name="db_name"/>
+                                <field name="master_password"/>
+                            </group>
+                            <group>
+                                <field name="country_id"/>
+                                <field name="creation_date"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                        <field name="activity_ids" widget="mail_activity"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_odoo_instance_management_tree" model="ir.ui.view">
+            <field name="name">view.odoo.instances.management.tree</field>
+            <field name="model">odoo.instances.management</field>
+            <field name="arch" type="xml">
+                <tree string="Odoo Instances Management Tree">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="country_id"/>
+                    <field name="creation_date"/>
+                    <field name="port"/>
+                    <field name="state"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_odoo_instance_management_view" model="ir.actions.act_window">
+            <field name="name">Instance Management</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">odoo.instances.management</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">
+                    Odoo Instances Management
+                </p>
+                <p>
+                    Create and Manage new Odoo Instance!
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_odoo_instance_management_root" name="Instances Management" sequence="20"
+                  web_icon="appex_instances_management,static/description/icon.png"/>
+        <menuitem id="menu_odoo_instance_management_view" name="Instances Management"
+                  parent="menu_odoo_instance_management_root" action="action_odoo_instance_management_view"
+                  sequence="1"/>
+
+    </data>
+</odoo>

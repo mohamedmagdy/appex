@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Custom Ignored files
+.idea/
+odoodocker.py
+
 # C extensions
 *.so
 

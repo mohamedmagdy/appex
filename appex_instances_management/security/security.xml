@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="security_categ_odoo_instances_management" model="ir.module.category">
+            <field name="name">Instances Management</field>
+            <field name="sequence" eval="10"/>
+        </record>
+
+        <record id="group_instance_management_user" model="res.groups">
+            <field name="name">User</field>
+            <field name="category_id" ref="security_categ_odoo_instances_management"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_instance_management_admin" model="res.groups">
+            <field name="name">Administrator</field>
+            <field name="category_id" ref="security_categ_odoo_instances_management"/>
+            <field name="implied_ids" eval="[(4, ref('appex_instances_management.group_instance_management_user'))]"/>
+        </record>
+
+    </data>
+</odoo>

@@ -51,6 +51,8 @@
                                 type="object"/>
                         <button name="pause_odoo_instance" string="Pause Instance" states="running" type="object"/>
                         <button name="delete_odoo_instance" string="Delete Instance" states="paused" type="object"/>
+                        <field name="is_pushed_appex_portal" invisible="1"/>
+                        <button name="push_to_appex_portal" string="Push to Portal" attrs="{'invisible':[('is_pushed_appex_portal', '=', True)]}" type="object"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,running,paused,deleted"/>
                     </header>
                     <sheet>
@@ -67,13 +69,42 @@
                                 <field name="port"/>
                                 <field name="instance_url" widget="url"/>
                                 <field name="db_name"/>
-                                <field name="master_password"/>
                             </group>
                             <group>
                                 <field name="country_id"/>
                                 <field name="creation_date"/>
+                                <field name="creation_mode" widget="radio" readonly="1"/>
                             </group>
                         </group>
+                        <notebook>
+                            <page string="Instance Users" groups="appex_instances_management.group_instance_management_admin">
+                                <field name="user_ids">
+                                    <tree create="false" edit="false" delete="false">
+                                        <field name="name"/>
+                                        <field name="type"/>
+                                        <field name="login"/>
+                                        <field name="password"/>
+                                    </tree>
+                                    <form create="false" edit="false" delete="false">
+                                        <div class="oe_title">
+                                            <label for="name" class="oe_edit_only"/>
+                                            <h1>
+                                                <field name="name" placeholder="User Name" readonly="1"/>
+                                            </h1>
+                                        </div>
+                                        <group>
+                                            <group>
+                                                <field name="login" readonly="1"/>
+                                                <field name="password" readonly="1"/>
+                                            </group>
+                                            <group>
+                                                <field name="type" readonly="1"/>
+                                            </group>
+                                        </group>
+                                    </form>
+                                </field>
+                            </page>
+                        </notebook>
                     </sheet>
                     <div class="oe_chatter">
                         <field name="message_follower_ids" widget="mail_followers"/>
@@ -119,6 +150,21 @@
         <menuitem id="menu_odoo_instance_management_view" name="Instances Management"
                   parent="menu_odoo_instance_management_root" action="action_odoo_instance_management_view"
                   sequence="1"/>
+        
+        <!-- Inherit Form View to Modify it -->
+        <record id="view_inherit_res_company_form" model="ir.ui.view">
+            <field name="name">view.inherit.res.company.form</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="base.view_company_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- position: after|before|replace|attributes|inside -->
+                <xpath expr="//field[@name='favicon']" position="after">
+                    <field name="appex_response_url"/>
+                </xpath>
+                
+            </field>
+        </record>
 
     </data>
 </odoo>

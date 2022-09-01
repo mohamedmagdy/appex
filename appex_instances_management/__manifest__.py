@@ -20,7 +20,11 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'mail', 'contacts'],
+    'depends': ['base', 'mail', 'contacts', 'base_automation'],
+
+    'external_dependencies': {
+        'python': ['erppeek']
+    },
 
     # always loaded
     'data': [
@@ -29,6 +33,7 @@
         'views/views.xml',
         'views/templates.xml',
         'data/instances_sequence.xml',
+        'data/automated_actions.xml',
     ],
     # only loaded in demonstration mode
     'demo': [

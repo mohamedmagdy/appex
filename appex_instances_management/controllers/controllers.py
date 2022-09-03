@@ -75,32 +75,47 @@ class AppexInstancesManagement(Controller):
         #     created_users = self.create_user(instance_obj.instance_url, instance_obj.db_name, kw.get('users_count'))
         #     created_api_user = self.create_api_user(instance_obj.instance_url, instance_obj.db_name)
         #     response = {"code": 200, "message": "Instance: %s Created successfully!" % instance_obj.name, "data": {"id": instance_obj.id, "instance_id": instance_obj.name, "url": instance_obj.instance_url, "users": created_users, "api_user": created_api_user}}
-            response = {"code": 200, "message": "Instance: %s Created successfully!" % instance_obj.name, "data": {"id": instance_obj.id, "instance_id": instance_obj.name}}
+            response = {"code": 200, "message": "Instance: %s Created successfully!" % instance_obj.name, "data": {"id": instance_obj.id, "instance_name": instance_obj.name, "instance_id": instance_obj.instance_token}}
             Response.status = "200"
             return response
 
     @route('/api/instance/stop', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def stop_instance(self, **kw):
         instance_obj = request.env['odoo.instances.management'].with_user(SUPERUSER_ID).search([('instance_token', '=', kw.get('instance_id'))])
-        instance_obj.pause_odoo_instance()
-        response = {"code": 200, "message": "Instance: %s Stopped successfully!" % kw.get('instance_id')}
-        Response.status = "200"
-        return response
+        if instance_obj:
+            instance_obj.pause_odoo_instance()
+            response = {"code": 200, "message": "Instance: %s Stopped successfully!" % instance_obj.name}
+            Response.status = "200"
+            return response
+        else:
+            response = {"code": 400, "message": "Instance was not found!"}
+            Response.status = "400"
+            return response
 
     @route('/api/instance/start', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def start_instance(self, **kw):
         instance_obj = request.env['odoo.instances.management'].with_user(SUPERUSER_ID).search(
             [('instance_token', '=', kw.get('instance_id'))])
-        instance_obj.run_odoo_instance()
-        response = {"code": 200, "message": "Instance: %s Started successfully!" % kw.get('instance_id')}
-        Response.status = "200"
-        return response
+        if instance_obj:
+            instance_obj.run_odoo_instance()
+            response = {"code": 200, "message": "Instance: %s Started successfully!" % instance_obj.name}
+            Response.status = "200"
+            return response
+        else:
+            response = {"code": 400, "message": "Instance was not found!"}
+            Response.status = "400"
+            return response
 
     @route('/api/instance/delete', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def delete_instance(self, **kw):
         instance_obj = request.env['odoo.instances.management'].with_user(SUPERUSER_ID).search(
             [('instance_token', '=', kw.get('instance_id'))])
-        instance_obj.delete_odoo_instance()
-        response = {"code": 200, "message": "Instance: %s Deleted successfully!" % kw.get('instance_id')}
-        Response.status = "200"
-        return response
+        if instance_obj:
+            instance_obj.delete_odoo_instance()
+            response = {"code": 200, "message": "Instance: %s Deleted successfully!" % instance_obj.name}
+            Response.status = "200"
+            return response
+        else:
+            response = {"code": 400, "message": "Instance was not found!"}
+            Response.status = "400"
+            return response

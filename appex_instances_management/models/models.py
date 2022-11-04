@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import random
 
-from odoo import models, fields, api
+from odoo import models, fields, api, SUPERUSER_ID
 import subprocess
 import erppeek
 import string
@@ -23,11 +23,11 @@ class Users(models.Model):
             self.generate_access_token()
 
 
-class Company(models.Model):
-    _name = 'res.company'
-    _inherit = 'res.company'
-
-    appex_response_url = fields.Char(string="Appex Portal Response URL", required=False, )
+# class Company(models.Model):
+#     _name = 'res.company'
+#     _inherit = 'res.company'
+#
+#     appex_response_url = fields.Char(string="Appex Portal Response URL", required=False, )
 
 
 class Country(models.Model):
@@ -72,6 +72,13 @@ class OdooInstancesManagement(models.Model):
     user_admin_pass = fields.Char(string="Administrator Password", required=False, )
     user_ids = fields.One2many(comodel_name="odoo.instance.users", inverse_name="instance_id", string="Instance Users", required=False, )
 
+    def get_access_parameters(self):
+        env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
+        odoo_instances_address = env_config_parameter.get_param('appex_instances_management.odoo_instances_address')
+        username = env_config_parameter.get_param('appex_instances_management.username')
+
+        return username, odoo_instances_address
+
     def create_user(self, instance_url, db_name, count):
         time.sleep(40)
         created_user = []
@@ -95,14 +102,16 @@ class OdooInstancesManagement(models.Model):
     #     return {"name": "API User", "login": "api_user", "password": api_password, 'type': 'api'}
 
     #TODO: Change the path for the server
-    def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=15):
+    def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=14):
         self.create_odoo_instance(path, version)
         created_users = self.create_user(self.instance_url, self.db_name, self.users_count)
         # created_api_user = self.create_api_user(self.instance_url, self.db_name)
         self.push_to_appex_portal(created_users)
 
     def push_to_appex_portal(self, created_users=None):
-        appex_response_api = self.env.company.appex_response_url
+        env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
+        appex_response_api = env_config_parameter.get_param('appex_instances_management.appex_response_url')
+        # appex_response_api = self.env.company.appex_response_url
         if created_users and appex_response_api:
             request_data = {"message": "Instance: %s Created successfully!" % self.name,
                             "data": {"id": self.id, "instance_id": self.instance_token, "url": self.instance_url,
@@ -113,19 +122,20 @@ class OdooInstancesManagement(models.Model):
                 self.is_pushed_appex_portal = True
 
     #TODO: Change the path for the server
-    def create_odoo_instance(self,path='/home/moh/tmpfolder', version=15):
+    def create_odoo_instance(self,path='/home/moh/tmpfolder', version=14):
         name = self.instance_token
         unique_port = True
         while unique_port:
             port = random.randint(2000, 5999)
             unique_port = self.search([('port', '=', port)])
         try:
-            subprocess.run(['docker', 'create', '-e','POSTGRES_USER=odoo','-e','POSTGRES_PASSWORD=odoo','-e','POSTGRES_DB=postgres',f'--name',f'{name}db','postgres:13'])
-            subprocess.run(['docker', 'create','-v',f'{path}:/mnt/extra-addons','-p',f'{port}:8069','--name',f'{name}','--link',f'{name}db:db','-t',f'odoo:{version}'])
+            username, address = self.get_access_parameters()
+            subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'create', '-e','POSTGRES_USER=odoo','-e','POSTGRES_PASSWORD=odoo','-e','POSTGRES_DB=postgres',f'--name',f'{name}db','postgres:13'])
+            subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'create','-v',f'{path}:/mnt/extra-addons','-p',f'{port}:8069','--name',f'{name}','--link',f'{name}db:db','-t',f'odoo:{version}'])
             self.port = port
-            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-            if base_url.count(':') == 2:
-                base_url = base_url[:-5]
+            base_url = self.env['ir.config_parameter'].get_param('appex_instances_management.odoo_instances_address')
+            # if base_url.count(':') == 2:
+            #     base_url = base_url[:-5]
             self.instance_url = '%s:%s' % (base_url, port)
             self.db_name = self.instance_token
             first_run = self.with_context(first_run=True).run_odoo_instance()
@@ -148,29 +158,34 @@ class OdooInstancesManagement(models.Model):
 
     def run_odoo_instance(self):
         name = self.instance_token
-        subprocess.Popen(['docker', 'start', f'{name}db'])
-        subprocess.Popen(['docker', 'start', f'{name}'])
+        username, address = self.get_access_parameters()
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'start', f'{name}db'])
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'start', f'{name}'])
         self.state = 'running'
         if self._context.get('first_run'):
             return True
 
     def pause_odoo_instance(self):
         name = self.instance_token
-        subprocess.Popen(['docker', 'stop', f'{name}'])
-        subprocess.Popen(['docker', 'stop', f'{name}db'])
+        username, address = self.get_access_parameters()
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'stop', f'{name}'])
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'stop', f'{name}db'])
         self.state = 'paused'
 
     def restart_odoo_instance(self):
         name = self.instance_token
-        subprocess.Popen(['docker', 'restart', f'{name}'])
-        subprocess.Popen(['docker', 'restart', f'{name}db'])
+        username, address = self.get_access_parameters()
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'restart', f'{name}'])
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'restart', f'{name}db'])
         self.state = 'running'
 
     def delete_odoo_instance(self):
         self.pause_odoo_instance()
+        # TODO: Perform long-term backup before proceeding with deleting procedures
         name = self.instance_token
-        subprocess.Popen(['docker', 'rm', f'{name}'])
-        subprocess.Popen(['docker', 'rm', f'{name}db'])
+        username, address = self.get_access_parameters()
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'rm', f'{name}'])
+        subprocess.Popen(['ssh', '%s@%s' % (username, address), 'docker', 'rm', f'{name}db'])
         self.state = 'deleted'
 
     def generate_instance_token(self):

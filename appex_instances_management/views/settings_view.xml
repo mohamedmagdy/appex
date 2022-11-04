@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.base.setup</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="0"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('settings')]" position="inside">
+                <div class="app_settings_block" data-string="Instances Settings" string="Instances Settings"
+                     data-key="instances_settings">
+                    <div id="instances_settings">
+                        <h2>Instances Settings</h2>
+                        <div class="row mt16 o_settings_container" name="instances_setting_container">
+                            <div class="col-12 col-lg-6 o_setting_box" id="remote_server_setting">
+                                <div class="o_setting_right_pane">
+                                    <span class="o_form_label">Remote Server</span>
+                                    <div class="text-muted">
+                                        Set the Remote Server Credentials for the created instances.
+                                    </div>
+                                    <div class="content-group">
+                                        <div class="mt16 row">
+                                            <label for="odoo_instances_address" string="Remote Server URL"
+                                                   class="col-3 col-lg-3 o_light_label"/>
+                                            <field name="odoo_instances_address" class="oe_inline" required="0"/>
+                                        </div>
+                                        <div class="mt16 row">
+                                            <label for="username" string="Username"
+                                                   class="col-3 col-lg-3 o_light_label"/>
+                                            <field name="username" class="oe_inline" required="0"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6 o_setting_box" id="document_layout_setting">
+                                <div class="o_setting_right_pane">
+                                    <span class="o_form_label">Out Systems Response URL</span>
+                                    <div class="content-group">
+                                        <div class="mt16" groups="base.group_no_one">
+                                            <label for="appex_response_url" string="Portal Response URL"
+                                                   class="col-3 col-lg-3 o_light_label"/>
+                                            <field name="appex_response_url" class="oe_inline"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_instance_configuration" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module' : 'instances_settings', 'bin_size': False}</field>
+    </record>
+
+    <menuitem
+            id="menu_instance_config"
+            name="Settings"
+            parent="appex_instances_management.menu_odoo_instance_management_root"
+            sequence="99"
+            action="appex_instances_management.action_instance_configuration"
+            groups="appex_instances_management.group_instance_management_admin"/>
+
+</odoo>

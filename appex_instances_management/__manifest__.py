@@ -31,6 +31,7 @@
         'security/security.xml',
         'security/ir.model.access.csv',
         'views/views.xml',
+        'views/settings_view.xml',
         'views/templates.xml',
         'data/instances_sequence.xml',
         'data/automated_actions.xml',

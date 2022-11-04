@@ -44,7 +44,7 @@
                 <form string="Odoo Instances Management Form">
                     <header>
                         <button name="create_odoo_instance" string="Create Instance" class="oe_highlight" states="draft"
-                                type="object"/>
+                                type="object" context="{'first_run': True}"/>
                         <button name="run_odoo_instance" string="Run Instance" class="oe_highlight" states="draft,paused"
                                 type="object"/>
                         <button name="restart_odoo_instance" string="Restart Instance" class="oe_highlight" states="running"
@@ -152,19 +152,19 @@
                   sequence="1"/>
         
         <!-- Inherit Form View to Modify it -->
-        <record id="view_inherit_res_company_form" model="ir.ui.view">
-            <field name="name">view.inherit.res.company.form</field>
-            <field name="model">res.company</field>
-            <field name="inherit_id" ref="base.view_company_form"/>
-            <field name="arch" type="xml">
-                
-                <!-- position: after|before|replace|attributes|inside -->
-                <xpath expr="//field[@name='favicon']" position="after">
-                    <field name="appex_response_url"/>
-                </xpath>
-                
-            </field>
-        </record>
+<!--        <record id="view_inherit_res_company_form" model="ir.ui.view">-->
+<!--            <field name="name">view.inherit.res.company.form</field>-->
+<!--            <field name="model">res.company</field>-->
+<!--            <field name="inherit_id" ref="base.view_company_form"/>-->
+<!--            <field name="arch" type="xml">-->
+<!--                -->
+<!--                &lt;!&ndash; position: after|before|replace|attributes|inside &ndash;&gt;-->
+<!--                <xpath expr="//field[@name='favicon']" position="after">-->
+<!--                    <field name="appex_response_url"/>-->
+<!--                </xpath>-->
+<!--                -->
+<!--            </field>-->
+<!--        </record>-->
 
     </data>
 </odoo>

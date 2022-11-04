@@ -44,7 +44,7 @@ class AppexInstancesManagement(Controller):
 
     @route('/api/print_request', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def get_request(self, **kw):
-        print(kw)
+        # print(kw)
         return {}
 
     @route('/api/instance/create', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)

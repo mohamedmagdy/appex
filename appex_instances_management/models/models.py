@@ -82,7 +82,7 @@ class OdooInstancesManagement(models.Model):
     def create_user(self, instance_url, db_name, count):
         time.sleep(40)
         created_user = []
-        client = erppeek.Client(server=instance_url)
+        client = erppeek.Client(server='http://%s' % self.instance_url)
         client.login('admin', self.user_admin_pass, db_name)
         for user_count in range(1, count+1):
             password = random.randint(9999, 99999)
@@ -131,18 +131,17 @@ class OdooInstancesManagement(models.Model):
         try:
             username, address = self.get_access_parameters()
             subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'create', '-e','POSTGRES_USER=odoo','-e','POSTGRES_PASSWORD=odoo','-e','POSTGRES_DB=postgres',f'--name',f'{name}db','postgres:13'])
-            subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'create','-v',f'{path}:/mnt/extra-addons','-p',f'{port}:8069','--name',f'{name}','--link',f'{name}db:db','-t',f'odoo:{version}'])
+            subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'create', '-v', f'{path}:/mnt/extra-addons', '-p',f'{port}:8069','--name',f'{name}','--link',f'{name}db:db','-t',f'odoo:{version}'])
             self.port = port
-            base_url = self.env['ir.config_parameter'].get_param('appex_instances_management.odoo_instances_address')
-            # if base_url.count(':') == 2:
-            #     base_url = base_url[:-5]
+            url = self.env['ir.config_parameter'].get_param('appex_instances_management.odoo_instances_address')
+            base_url = url.startswith('http') and url.split('/')[-1] or url
             self.instance_url = '%s:%s' % (base_url, port)
             self.db_name = self.instance_token
             first_run = self.with_context(first_run=True).run_odoo_instance()
             self.env.cr.commit()
             time.sleep(20)
             if first_run:
-                client = erppeek.Client(server=self.instance_url)
+                client = erppeek.Client(server='http://%s' % self.instance_url)
                 user_admin_pass = str(random.randint(1000, 9999))
                 client.create_database(passwd='admin', database=self.db_name, user_password=user_admin_pass, login="admin", country_code=self.country_id.code)
                 self.write({'user_admin_pass': user_admin_pass, 'user_ids': [(0, 0, {'name': 'Administrator', 'login': 'admin', 'password': user_admin_pass, 'type': 'admin'})]})

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.base.setup</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="0"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- position values: after|before|replace|attributes|inside -->
+            <xpath expr="//div[@id='outsystems_response_url_setting']//div[hasclass('content-group')]//div"
+                   position="inside">
+                <div class="mt16" groups="base.group_no_one">
+                    <label for="appex_payment_url" string="API URL"
+                           class="col-3 col-lg-3 o_light_label"/>
+                    <field name="appex_payment_url" class="oe_inline"/>
+                </div>
+                <div class="mt16" groups="base.group_no_one">
+                    <label for="appex_payment_token" string="Token"
+                           class="col-3 col-lg-3 o_light_label"/>
+                    <field name="appex_payment_token" class="oe_inline"/>
+                </div>
+                <div class="mt16" groups="base.group_no_one">
+                    <label for="billing_product_id" string="Billing Product"
+                           class="col-3 col-lg-3 o_light_label"/>
+                    <field name="billing_product_id" class="oe_inline"/>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

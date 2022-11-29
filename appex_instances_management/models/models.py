@@ -8,7 +8,10 @@ import string
 import re
 import time
 import requests
+import json
+import logging
 
+_logger = logging.getLogger(__name__)
 
 class Users(models.Model):
     _name = 'res.users'
@@ -45,7 +48,7 @@ class OdooInstanceUsers(models.Model):
     name = fields.Char(string="User Name", required=False, )
     login = fields.Char(string="Login", )
     password = fields.Char(string="Password")
-    type = fields.Selection(string="Type", selection=[('regular', 'Regular'), ('admin', 'Administrator'), ], default='regular', )
+    type = fields.Selection(string="Type", selection=[('admin', 'Administrator'), ('manager', 'Manager'), ('client', 'Client'), ('accountant', 'Accountant')], default='accountant', )
     instance_id = fields.Many2one(comodel_name="odoo.instances.management", string="Instance", required=True, )
 
 
@@ -84,13 +87,32 @@ class OdooInstancesManagement(models.Model):
         created_user = []
         client = erppeek.Client(server='http://%s' % self.instance_url)
         client.login('admin', self.user_admin_pass, db_name)
+
+        # Create a client account
+        password = random.randint(9999, 99999)
+        username = 'client'
+        name = 'Client'
+        client.create('res.users', {'login': username, 'password': password, 'name': name})
+        created_user.append({"name": name, "login": username, "password": password, 'type': 'client'})
+
+        # Create a manager account
+        password = random.randint(9999, 99999)
+        username = 'manager'
+        name = 'Manager'
+        client.create('res.users', {'login': username, 'password': password, 'name': name})
+        created_user.append({"name": name, "login": username, "password": password, 'type': 'manager'})
+
+        # Create Accountant Users using the number of users requested
         for user_count in range(1, count+1):
             password = random.randint(9999, 99999)
-            username = 'user%s' % user_count
-            name = 'USER %s' % user_count
+            username = 'accountant%s' % user_count
+            name = 'Accountant %s' % user_count
             client.create('res.users', {'login': username, 'password': password, 'name': name})
-            created_user.append({"name": name, "login": username, "password": password, 'type': 'regular'})
+            created_user.append({"name": name, "login": username, "password": password, 'type': 'accountant'})
+
         self.write({'user_ids': [(0, 0, user_vals) for user_vals in created_user]})
+        # By default, Administrator is created already. It should be added to the returned created_user
+        created_user.append({'name': 'Administrator', 'login': 'admin', 'password': self.user_admin_pass, 'type': 'admin'})
         return created_user
 
     # def create_api_user(self, instance_url, db_name):
@@ -103,6 +125,7 @@ class OdooInstancesManagement(models.Model):
 
     #TODO: Change the path for the server
     def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=14):
+        time.sleep(40)
         self.create_odoo_instance(path, version)
         created_users = self.create_user(self.instance_url, self.db_name, self.users_count)
         # created_api_user = self.create_api_user(self.instance_url, self.db_name)
@@ -111,13 +134,19 @@ class OdooInstancesManagement(models.Model):
     def push_to_appex_portal(self, created_users=None):
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
         appex_response_api = env_config_parameter.get_param('appex_instances_management.appex_response_url')
-        # appex_response_api = self.env.company.appex_response_url
+        env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
+        appex_payment_token = env_config_parameter.get_param('accounting_integration.appex_payment_token')
         if created_users and appex_response_api:
             request_data = {"message": "Instance: %s Created successfully!" % self.name,
                             "data": {"id": self.id, "instance_id": self.instance_token, "url": self.instance_url,
                                      "users": created_users}}
-            request_push_instance_data = requests.post(appex_response_api, headers={"content-type": "application/json"},
-                                                       json={"params": request_data})
+            _logger.info(appex_response_api)
+            _logger.info(request_data)
+            request_push_instance_data = requests.request("POST", appex_response_api, headers={"Authorization": appex_payment_token,"content-type": "application/json"},
+                                                       data=json.dumps(request_data))
+            _logger.info(request_push_instance_data)
+            _logger.info(request_push_instance_data.status_code)
+            _logger.info(request_push_instance_data.content)
             if request_push_instance_data.status_code == 200:
                 self.is_pushed_appex_portal = True
 

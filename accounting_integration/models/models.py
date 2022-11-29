@@ -6,6 +6,13 @@ from odoo.tools import DEFAULT_SERVER_DATE_FORMAT
 import json
 
 
+class Partner(models.Model):
+    _name = 'res.partner'
+    _inherit = 'res.partner'
+
+    entity_id = fields.Char(string="Entity ID", required=False, )
+
+
 class StaffPayment(models.Model):
     _name = 'staff.payment'
     _rec_name = 'name'
@@ -38,6 +45,10 @@ class StaffPayment(models.Model):
         env_receipts = self.env['account.payment'].with_context({'default_payment_type': 'outbound', 'default_partner_type': 'supplier'})
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
         billing_product_id = int(env_config_parameter.get_param('accounting_integration.billing_product_id'))
+        appex_payment_token = env_config_parameter.get_param('accounting_integration.appex_payment_token')
+        appex_payment_url = env_config_parameter.get_param('accounting_integration.appex_payment_url')
+        update_payment_url = "%s/UpdateStaffPayment" % (appex_payment_url)
+        headers = {'Authorization': appex_payment_token, 'Content-Type': 'application/json'}
         bills_vals = {}
         receipts_vals = {}
         for staff_payment in self:
@@ -46,6 +57,7 @@ class StaffPayment(models.Model):
                 receipts_vals.update({'partner_id': partner_id and partner_id.id or False, 'amount': staff_payment.amount,
                                       'currency_id': staff_payment.currency_id.id, 'ref': staff_payment.description})
                 created_receipts = env_receipts.create(receipts_vals)
+                # created_receipts.action_post()
                 if created_receipts:
                     staff_payment.generated_record_ref = 'account.payment,%s' % created_receipts.id
             elif staff_payment.beneficiary_type == 'Partner':
@@ -56,15 +68,19 @@ class StaffPayment(models.Model):
                                        ),]
                                    })
                 created_bills = env_bills.create(bills_vals)
+                # created_bills.action_post()
                 if created_bills:
                     staff_payment.generated_record_ref = 'account.move,%s' % created_bills.id
             else:
                 pass
+            if staff_payment:
+                payload = [{"PaymentId": staff_payment.id, "status": "processed", "ReceiptBinary": False,
+                            "ReciptName": staff_payment.generated_record_ref.id}]
+                response = requests.request("POST", update_payment_url, headers=headers, data=payload)
         # if bills_vals:
         #     env_bills.create(bills_vals)
         # if receipts_vals:
         #     env_receipts.create(receipts_vals)
-
 
 
     def _filter_date_from(self):
@@ -86,7 +102,7 @@ class StaffPayment(models.Model):
         FromDateTime = self._filter_date_from()
         ToDateTime = self._filter_date_to()
 
-        url = "%s?FromDateTime=%s&ToDateTime=%s&Status=issued" % (appex_payment_url, FromDateTime, ToDateTime)
+        url = "%s/GetStaffPayment?FromDateTime=%s&ToDateTime=%s&Status=issued" % (appex_payment_url, FromDateTime, ToDateTime)
         payload = {}
         headers = {'Authorization': appex_payment_token}
 
@@ -99,11 +115,11 @@ class StaffPayment(models.Model):
                 for payment in json_response:
                     currency_id = env_currency.search([('name', '=', payment.get('Currency'))], limit=1).id
                     exist_staff_payment = self.search([('name', '=', payment.get('PaymentId'))])
+                    company_type = payment.get('EntityType') == 'Corporate' and 'company' or 'person'
                     if payment.get('BeneficiaryName'):
-                        exist_partner_id = env_partner.search([('name', '=', payment.get('BeneficiaryName'))], limit=1)
+                        exist_partner_id = env_partner.search([('name', '=', payment.get('BeneficiaryName')), ('entity_id', '=', payment.get('EntityId')), ('company_type', '=', company_type)], limit=1)
                         if not exist_partner_id:
-                            company_type = payment.get('EntityType') == 'Corporate' and 'company' or 'person'
-                            partner_id = env_partner.create({'name': payment.get('BeneficiaryName'), 'company_type': company_type})
+                            partner_id = env_partner.create({'name': payment.get('BeneficiaryName'), 'company_type': company_type, "entity_id": payment.get("EntityId")})
                         else:
                             partner_id = exist_partner_id
                     staff_payment_vals = {}

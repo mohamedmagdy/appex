@@ -53,8 +53,8 @@ class AppexInstancesManagement(Controller):
         user = self._check_token(token=access_token)
 
         if not user:
-            response = {"code": 200, 'message': "No valid token provided"}
-            Response.status = "200"
+            response = {"code": 401, 'message': "No valid token provided"}
+            Response.status = "401"
             return response
 
         company_name = kw.get('company_name')
@@ -81,6 +81,14 @@ class AppexInstancesManagement(Controller):
 
     @route('/api/instance/stop', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def stop_instance(self, **kw):
+        access_token = request.httprequest.headers['Authorization']
+        user = self._check_token(token=access_token)
+
+        if not user:
+            response = {"code": 401, 'message': "No valid token provided"}
+            Response.status = "401"
+            return response
+
         instance_obj = request.env['odoo.instances.management'].with_user(SUPERUSER_ID).search([('instance_token', '=', kw.get('instance_id'))])
         if instance_obj:
             instance_obj.pause_odoo_instance()
@@ -94,6 +102,14 @@ class AppexInstancesManagement(Controller):
 
     @route('/api/instance/start', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def start_instance(self, **kw):
+        access_token = request.httprequest.headers['Authorization']
+        user = self._check_token(token=access_token)
+
+        if not user:
+            response = {"code": 401, 'message': "No valid token provided"}
+            Response.status = "401"
+            return response
+
         instance_obj = request.env['odoo.instances.management'].with_user(SUPERUSER_ID).search(
             [('instance_token', '=', kw.get('instance_id'))])
         if instance_obj:
@@ -108,6 +124,14 @@ class AppexInstancesManagement(Controller):
 
     @route('/api/instance/delete', type='json', auth='public', methods=['POST'], sitemap=False, csrf=False)
     def delete_instance(self, **kw):
+        access_token = request.httprequest.headers['Authorization']
+        user = self._check_token(token=access_token)
+
+        if not user:
+            response = {"code": 401, 'message': "No valid token provided"}
+            Response.status = "401"
+            return response
+
         instance_obj = request.env['odoo.instances.management'].with_user(SUPERUSER_ID).search(
             [('instance_token', '=', kw.get('instance_id'))])
         if instance_obj:

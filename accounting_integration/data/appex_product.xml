@@ -5,6 +5,7 @@
        <record id="invoice_service_product" model="product.product">
            <field name="name">Appex Invoice</field>
            <field name="type">service</field>
+           <field name="categ_id" ref="product.product_category_all"/>
        </record>
 
     </data>

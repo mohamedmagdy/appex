@@ -2,16 +2,9 @@
 <odoo>
     <data noupdate="0">
 
-       <record id="invoice_service_producttmpl" model="product.template">
+       <record id="invoice_service_product" model="product.product">
            <field name="name">Appex Invoice</field>
            <field name="type">service</field>
-           <field name="sale_line_warn">sale_line_warn</field>
-       </record>
-
-        <record id="invoice_service_product" model="product.product">
-           <field name="name">Appex Invoice</field>
-           <field name="type">service</field>
-            <field name="product_tmpl_id" ref="invoice_service_producttmpl"/>
        </record>
 
     </data>

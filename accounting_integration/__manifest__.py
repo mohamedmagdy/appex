@@ -20,7 +20,7 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'account', 'appex_instances_management'],
+    'depends': ['base', 'account', 'appex_instances_management', 'product'],
 
     # always loaded
     'data': [

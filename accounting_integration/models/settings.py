@@ -7,6 +7,7 @@ class ResConfigSettings(models.TransientModel):
     appex_payment_token = fields.Char(string="Staff Payment Token", required=False, )
     appex_payment_url = fields.Char(string="Staff Payment URL", required=False, )
     billing_product_id = fields.Many2one(comodel_name="product.product", string="Billing Product", required=False, )
+    invoice_product_id = fields.Many2one(comodel_name="product.product", string="Invoicing Product", required=False, )
 
     @api.model
     def get_values(self):
@@ -16,6 +17,7 @@ class ResConfigSettings(models.TransientModel):
             appex_payment_token=env_config_parameter.get_param('accounting_integration.appex_payment_token'),
             appex_payment_url=env_config_parameter.get_param('accounting_integration.appex_payment_url'),
             billing_product_id=int(env_config_parameter.get_param('accounting_integration.billing_product_id')),
+            invoice_product_id=int(env_config_parameter.get_param('accounting_integration.invoice_product_id')) or self.env.ref('accounting_integration.invoice_service_product').id,
         )
         return res
 
@@ -26,8 +28,9 @@ class ResConfigSettings(models.TransientModel):
         appex_payment_token = self.appex_payment_token and self.appex_payment_token or False
         appex_payment_url = self.appex_payment_url and self.appex_payment_url or False
         billing_product_id = self.billing_product_id and self.billing_product_id or False
-        print(self.billing_product_id)
+        invoice_product_id = self.invoice_product_id and self.invoice_product_id or False
 
         env_config_parameter.set_param('accounting_integration.appex_payment_token', appex_payment_token)
         env_config_parameter.set_param('accounting_integration.appex_payment_url', appex_payment_url)
         env_config_parameter.set_param('accounting_integration.billing_product_id', billing_product_id.id)
+        env_config_parameter.set_param('accounting_integration.invoice_product_id', invoice_product_id.id)

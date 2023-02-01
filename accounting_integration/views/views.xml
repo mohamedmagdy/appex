@@ -64,6 +64,21 @@
         </record>
 
         <menuitem id="menu_staff_payment_view" name="Staff Payment" parent="account.menu_finance_payables" action="action_staff_payment_view" sequence="100" groups="group_outsystems_staff_payment"/>
+        
+        <!-- Inherit Form View to Modify it -->
+        <record id="view_inherit_account_invoice_form" model="ir.ui.view">
+            <field name="name">view.inherit.account.move.form</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+
+                <!-- position: after|before|replace|attributes|inside -->
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="appex_id" readonly="1"/>
+                </xpath>
+
+            </field>
+        </record>
 
     </data>
 </odoo>

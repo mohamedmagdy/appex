@@ -134,3 +134,15 @@ class StaffPayment(models.Model):
                 if created_staff_payments:
                     # If success response, Set the 'last_date_to' to today's date
                     env_config_parameter.set_param('accounting_integration.last_date_to', ToDateTime)
+
+
+class AccountInvoice(models.Model):
+    _name = 'account.move'
+    _inherit = 'account.move'
+
+    appex_id = fields.Char(string="Appex Invoice ID", required=False, )
+
+    _sql_constraints = [
+        ("appex_id_unique", "unique(appex_id)",
+         "An invoice with the same Appex ID already exist"),
+    ]

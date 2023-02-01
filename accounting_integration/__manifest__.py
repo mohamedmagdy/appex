@@ -24,6 +24,7 @@
 
     # always loaded
     'data': [
+        'data/appex_product.xml',
         'data/scheduled_actions.xml',
         'data/automated_actions.xml',
         'security/security.xml',

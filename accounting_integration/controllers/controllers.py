@@ -33,6 +33,7 @@ class AccountingIntegration(http.Controller):
         # }
         partner_env = request.env['res.partner'].with_user(SUPERUSER_ID)
         currency_env = request.env['res.currency'].with_user(SUPERUSER_ID)
+        product_env = request.env['product.product'].with_user(SUPERUSER_ID)
         partner_obj = partner_env.search([('name', '=', kw.get('clientname'))], limit=1)
         currency_obj = currency_env.search([('name', '=', kw.get('currency'))], limit=1)
         if partner_obj:
@@ -41,6 +42,7 @@ class AccountingIntegration(http.Controller):
             partner_id = partner_env.create({'name': kw.get('clientname'), })
         env_config_parameter = request.env['ir.config_parameter'].with_user(SUPERUSER_ID)
         product = env_config_parameter.get_param('accounting_integration.invoice_product_id')
+        product_obj = product_env.browse(int(product))
         try:
             invoice = request.env['account.move'].with_user(user).create({
                 'partner_id': partner_id,
@@ -51,9 +53,9 @@ class AccountingIntegration(http.Controller):
                 'invoice_payment_term_id': request.env.ref('account.account_payment_term_immediate').id,
                 'invoice_line_ids': [
                     (0, 0, {
-                        'product_id': int(product),
+                        'product_id': product_obj.id,
                         'currency_id': currency_obj and currency_obj.id,
-                        'account_id': product.categ_id.property_account_income_categ_id.id,
+                        'account_id': product_obj.categ_id.property_account_income_categ_id.id,
                         'quantity': 1,
                         'price_unit': kw.get('amount'),
                         'name': kw.get('description'),

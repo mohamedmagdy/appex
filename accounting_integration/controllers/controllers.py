@@ -53,6 +53,7 @@ class AccountingIntegration(http.Controller):
                     (0, 0, {
                         'product_id': int(product),
                         'currency_id': currency_obj and currency_obj.id,
+                        'account_id': product.categ_id.property_account_income_categ_id.id,
                         'quantity': 1,
                         'price_unit': kw.get('amount'),
                         'name': kw.get('description'),

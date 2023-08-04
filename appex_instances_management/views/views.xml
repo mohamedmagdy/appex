@@ -52,7 +52,10 @@
                         <button name="pause_odoo_instance" string="Pause Instance" states="running" type="object"/>
                         <button name="delete_odoo_instance" string="Delete Instance" states="paused" type="object"/>
                         <field name="is_pushed_appex_portal" invisible="1"/>
-                        <button name="push_to_appex_portal" string="Push to Portal" attrs="{'invisible':[('is_pushed_appex_portal', '=', True)]}" type="object"/>
+                        <button name="push_to_appex_portal" string="Push to Portal" type="object"
+                                attrs="{'invisible':[('is_pushed_appex_portal', '=', True)]}"
+                                context="{'push_form_button': True}"/>
+                        />
                         <field name="state" widget="statusbar" statusbar_visible="draft,running,paused,deleted"/>
                     </header>
                     <sheet>

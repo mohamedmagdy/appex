@@ -45,7 +45,7 @@ class StaffPayment(models.Model):
         env_receipts = self.env['account.payment'].with_context({'default_payment_type': 'outbound', 'default_partner_type': 'supplier'})
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
         billing_product_id = int(env_config_parameter.get_param('accounting_integration.billing_product_id'))
-        appex_payment_token = env_config_parameter.get_param('accounting_integration.appex_payment_token')
+        appex_payment_token = env_config_parameter.get_param('appex_instances_management.appex_payment_token')
         appex_payment_url = env_config_parameter.get_param('accounting_integration.appex_payment_url')
         update_payment_url = "%s/UpdateStaffPayment" % (appex_payment_url)
         headers = {'Authorization': appex_payment_token, 'Content-Type': 'application/json'}
@@ -97,7 +97,7 @@ class StaffPayment(models.Model):
 
     def get_staff_payment(self):
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
-        appex_payment_token = env_config_parameter.get_param('accounting_integration.appex_payment_token')
+        appex_payment_token = env_config_parameter.get_param('appex_instances_management.appex_payment_token')
         appex_payment_url = env_config_parameter.get_param('accounting_integration.appex_payment_url')
         FromDateTime = self._filter_date_from()
         ToDateTime = self._filter_date_to()

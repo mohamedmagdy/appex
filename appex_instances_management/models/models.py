@@ -135,7 +135,7 @@ class OdooInstancesManagement(models.Model):
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
         appex_response_api = env_config_parameter.get_param('appex_instances_management.appex_response_url')
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
-        appex_payment_token = env_config_parameter.get_param('accounting_integration.appex_payment_token')
+        appex_payment_token = env_config_parameter.get_param('appex_instances_management.appex_payment_token')
         if not created_users and self._context.get("push_form_button"):
             created_users = self.user_ids.search_read([('instance_id', '=', self.id)], ['name', 'login', 'password', 'type'])
         if created_users and appex_response_api:

@@ -145,7 +145,7 @@ class OdooInstancesManagement(models.Model):
             _logger.info(appex_response_api)
             _logger.info(request_data)
             request_push_instance_data = requests.request("POST", appex_response_api, headers={"Authorization": appex_payment_token,"content-type": "application/json"},
-                                                       data=json.dumps(request_data))
+                                                       data=json.dumps(request_data), verify=False)
             _logger.info(request_push_instance_data)
             _logger.info(request_push_instance_data.status_code)
             _logger.info(request_push_instance_data.content)

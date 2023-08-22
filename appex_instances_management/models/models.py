@@ -125,7 +125,6 @@ class OdooInstancesManagement(models.Model):
 
     #TODO: Change the path for the server
     def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=14):
-        time.sleep(40)
         self.create_odoo_instance(path, version)
         created_users = self.create_user(self.instance_url, self.db_name, self.users_count)
         # created_api_user = self.create_api_user(self.instance_url, self.db_name)
@@ -136,7 +135,7 @@ class OdooInstancesManagement(models.Model):
         appex_response_api = env_config_parameter.get_param('appex_instances_management.appex_response_url')
         env_config_parameter = self.env['ir.config_parameter'].with_user(SUPERUSER_ID)
         appex_payment_token = env_config_parameter.get_param('appex_instances_management.appex_payment_token')
-        if not created_users and self._context.get("push_form_button"):
+        if not created_users:
             created_users = self.user_ids.search_read([('instance_id', '=', self.id)], ['name', 'login', 'password', 'type'])
         if created_users and appex_response_api:
             request_data = {"message": "Instance: %s Created successfully!" % self.name,
@@ -145,7 +144,7 @@ class OdooInstancesManagement(models.Model):
             _logger.info(appex_response_api)
             _logger.info(request_data)
             request_push_instance_data = requests.request("POST", appex_response_api, headers={"Authorization": appex_payment_token,"content-type": "application/json"},
-                                                       data=json.dumps(request_data), verify=False)
+                                                       data=json.dumps(request_data))
             _logger.info(request_push_instance_data)
             _logger.info(request_push_instance_data.status_code)
             _logger.info(request_push_instance_data.content)

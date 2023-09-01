@@ -236,12 +236,12 @@ class OdooInstancesManagement(models.Model):
                         }}
                     }}"""
 
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'cat > /etc/nginx/sites-available/%s.conf' % self.instance_subdomain],
+                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo cat > /etc/nginx/sites-available/%s.conf' % self.instance_subdomain],
                                input=nginx_conf.encode('utf-8'))
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/' % self.instance_subdomain])
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'nginx -t'])
+                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/' % self.instance_subdomain])
+                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo nginx -t'])
 
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'systemctl restart nginx'])
+                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo systemctl restart nginx'])
                 _logger.info("Creating Nginx configuration done!")
 
             self.db_name = self.instance_token

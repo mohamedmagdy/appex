@@ -71,6 +71,7 @@
                                 <field name="partner_id"/>
                                 <field name="port"/>
                                 <field name="instance_url" widget="url"/>
+                                <field name="instance_subdomain" widget="url"/>
                                 <field name="db_name"/>
                             </group>
                             <group>

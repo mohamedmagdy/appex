@@ -187,16 +187,20 @@ class OdooInstancesManagement(models.Model):
             subdomain_exist = requests.request("GET", godaddy_check_subdomain, headers=headers, data=payload)
 
             if json.loads(subdomain_exist.content):
-                raise ValidationError(_('Subdomain already exists in GoDaddy. Please try again!'))
+                _logger.error('Subdomain already exists in GoDaddy. Please try again!')
+
+            _logger.info("Create a new subdomain in GoDaddy")
             headers['Content-Type'] = 'application/json'
             # FIXME: Change the IP address to the server IP address
             payload = [{"data": url,"name": subdomain,"ttl": 3600,"type": "A"}]
             new_subdomain_request = requests.request("PATCH", godaddy_api_url, headers=headers, json=payload)
+            _logger.info("New Subdomain Request: %s" % new_subdomain_request.content)
             if new_subdomain_request.status_code == 200:
                 instance_subdomain = "%s.appexexperts.com" % subdomain
+                _logger.info("Instance Subdomain: %s" % instance_subdomain)
                 return instance_subdomain
             else:
-                raise ValidationError(_('Error while creating subdomain in GoDaddy. Please try again!'))
+                raise _logger.error(_('Error while creating subdomain in GoDaddy. Please try again!'))
         except Exception as e:
             _logger.error(e)
 

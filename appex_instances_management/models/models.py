@@ -224,21 +224,25 @@ class OdooInstancesManagement(models.Model):
             base_url = url.startswith('http') and url.split('/')[-1] or url
             self.instance_url = '%s:%s' % (base_url, port)
             self.instance_subdomain = self._get_subdomain(url)
+            _logger.info("Creating Nginx configuration")
             if self.instance_subdomain:
+                nginx_conf = f"""server {{
+                    listen 80;
+                    server_name {self.instance_subdomain};
+                    proxy_read_timeout 720s;
+                    location / {{
+                        proxy_pass http://{self.instance_url};
+                        proxy_set_header Host $host;
+                        }}
+                    }}"""
+
                 subprocess.run(['ssh', '%s@%s' % (username, address), 'cat > /etc/nginx/sites-available/%s.conf' % self.instance_subdomain],
                                input=nginx_conf.encode('utf-8'))
                 subprocess.run(['ssh', '%s@%s' % (username, address), 'ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/' % self.instance_subdomain])
                 subprocess.run(['ssh', '%s@%s' % (username, address), 'nginx -t'])
-                nginx_conf = f"""server {{
-    listen 80;
-    server_name {self.instance_subdomain};
-    proxy_read_timeout 720s;
-    location / {{
-        proxy_pass http://{self.instance_url};
-        proxy_set_header Host $host;
-        }}
-    }}"""
+
                 subprocess.run(['ssh', '%s@%s' % (username, address), 'systemctl restart nginx'])
+                _logger.info("Creating Nginx configuration done!")
 
             self.db_name = self.instance_token
             first_run = self.with_context(first_run=True).run_odoo_instance()

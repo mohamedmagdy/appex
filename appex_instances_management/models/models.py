@@ -19,7 +19,6 @@ class Users(models.Model):
     _name = 'res.users'
     _inherit = 'res.users'
 
-    # reset_password_code = fields.Char(string="Reset Password Code", )
     access_token = fields.Char(string="Access Token")
 
     def generate_access_token(self):
@@ -27,13 +26,6 @@ class Users(models.Model):
             random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=16))
         if not bool(re.search(r'\d', self.access_token)):
             self.generate_access_token()
-
-
-# class Company(models.Model):
-#     _name = 'res.company'
-#     _inherit = 'res.company'
-#
-#     appex_response_url = fields.Char(string="Appex Portal Response URL", required=False, )
 
 
 class Country(models.Model):
@@ -78,6 +70,7 @@ class OdooInstancesManagement(models.Model):
     instance_token = fields.Char(string="Instance Token", required=False, )
     instance_url = fields.Char(string="Instance URL", required=False, )
     instance_subdomain = fields.Char(string="Instance Domain", required=False, )
+    subdomain = fields.Char(string="Subdomain", required=False, )
     db_name = fields.Char(string="DB Name", required=False, )
     creation_mode = fields.Selection(string="Creation Mode", selection=[('manual', 'Manual'), ('api', 'By API'), ],
                                      default='manual',
@@ -96,7 +89,7 @@ class OdooInstancesManagement(models.Model):
         return username, odoo_instances_address
 
     def create_user(self, instance_url, db_name, count):
-        time.sleep(40)
+        # time.sleep(40)
         created_user = []
         client = erppeek.Client(server='http://%s' % self.instance_url)
         client.login('admin', self.user_admin_pass, db_name)
@@ -128,14 +121,6 @@ class OdooInstancesManagement(models.Model):
         created_user.append(
             {'name': 'Administrator', 'login': 'admin', 'password': self.user_admin_pass, 'type': 'admin'})
         return created_user
-
-    # def create_api_user(self, instance_url, db_name):
-    #     time.sleep(20)
-    #     client = erppeek.Client(server=instance_url)
-    #     client.login('admin', 'admin', db_name)
-    #     api_password = random.randint(9999, 99999)
-    #     client.create('res.users', {'login': "api_user", 'password': api_password, 'name': "API User"})
-    #     return {"name": "API User", "login": "api_user", "password": api_password, 'type': 'api'}
 
     # TODO: Change the path for the server
     def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=14):
@@ -171,7 +156,7 @@ class OdooInstancesManagement(models.Model):
     def _get_subdomain(self, url):
         # Get the first name of the partner_id
         try:
-            company_name = self.partner_id.name.split(' ')[0]
+            company_name = self.partner_id.name.replace(' ', '-').lower()
             instance_no = self.name.split('e')[1]
             subdomain = '%s-%s' % (company_name, instance_no)
 
@@ -196,6 +181,7 @@ class OdooInstancesManagement(models.Model):
             new_subdomain_request = requests.request("PATCH", godaddy_api_url, headers=headers, json=payload)
             _logger.info("New Subdomain Request: %s" % new_subdomain_request.content)
             if new_subdomain_request.status_code == 200:
+                self.subdomain = subdomain
                 instance_subdomain = "%s.appexexperts.com" % subdomain
                 _logger.info("Instance Subdomain: %s" % instance_subdomain)
                 return instance_subdomain
@@ -204,7 +190,6 @@ class OdooInstancesManagement(models.Model):
         except Exception as e:
             _logger.error(e)
 
-    # TODO: Change the path for the server
     def create_odoo_instance(self, path='/home/moh/tmpfolder', version=14):
         name = self.instance_token
         unique_port = True
@@ -213,12 +198,17 @@ class OdooInstancesManagement(models.Model):
             unique_port = self.search([('port', '=', port)])
         try:
             username, address = self.get_access_parameters()
-            subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'create', '-e', 'POSTGRES_USER=odoo', '-e',
-                            'POSTGRES_PASSWORD=odoo', '-e', 'POSTGRES_DB=postgres', f'--name', f'{name}db',
-                            'postgres:13'])
+            # Create a separate PostgreSQL container for each Odoo instance
+            subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'service', 'create', '--name', f'{name}db',
+                            '--replicas', '1', '-e', 'POSTGRES_USER=odoo', '-e', 'POSTGRES_PASSWORD=odoo', '-e',
+                            'POSTGRES_DB=postgres', '--mount', 'type=volume,destination=/var/lib/postgresql/data',
+                            '--network', 'my-network', 'postgres:13'])
+            # Create the Odoo instance
             subprocess.run(
-                ['ssh', '%s@%s' % (username, address), 'docker', 'create', '-v', f'{path}:/mnt/extra-addons', '-p',
-                 f'{port}:8069', '--name', f'{name}', '--link', f'{name}db:db', '-t', f'odoo:{version}'])
+                ['ssh', '%s@%s' % (username, address), 'docker', 'service', 'create', '--name', f'{name}', '--replicas',
+                 '1', '--publish', f'{port}:8069', '--mount', 'type=volume,destination=/var/lib/odoo', '--mount',
+                 'type=volume,destination=/mnt/extra-addons', '--network', 'my-network', '-e', f'HOST={name}db',
+                 'odoo:%s' % version, '-i', 'base'])
             self.port = port
             url = self.env['ir.config_parameter'].get_param('appex_instances_management.odoo_instances_address')
             base_url = url.startswith('http') and url.split('/')[-1] or url
@@ -227,39 +217,113 @@ class OdooInstancesManagement(models.Model):
             _logger.info("Creating Nginx configuration")
             if self.instance_subdomain:
                 nginx_conf = f"""server {{
-                    listen 80;
-                    server_name {self.instance_subdomain};
-                    proxy_read_timeout 720s;
-                    location / {{
-                        proxy_pass http://{self.instance_url};
-                        proxy_set_header Host $host;
-                        }}
-                    }}"""
+ listen 80;
+ listen [::]:80;
+ server_name *.appexexperts.com;
+ return 301 https://\$host\$request_uri;
+}}
 
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo cat > /etc/nginx/sites-available/%s.conf' % self.instance_subdomain],
-                               input=nginx_conf.encode('utf-8'))
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/' % self.instance_subdomain])
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo nginx -t'])
+server {{
+ listen 80;
+ listen [::]:80;
+ server_name appexexperts.com;
+ return 301 https://{self.subdomain}.\$host\$request_uri;
+}}
 
-                subprocess.run(['ssh', '%s@%s' % (username, address), 'sudo systemctl restart nginx'])
+server {{
+    server_name {self.subdomain}.appexexperts.com;
+    return 301 https://{self.subdomain}.appexexperts.com\$request_uri;
+}}
+
+server {{
+   listen 443 ssl http2;
+   server_name {self.subdomain}.appexexperts.com;
+
+   ssl_certificate /etc/ssl/appex/bundle.crt;
+   ssl_certificate_key /etc/ssl/appex/appex.key;
+   ssl_session_timeout 1d;
+   ssl_session_cache shared:SSL:10m;
+   ssl_session_tickets off;
+
+   #ssl_dhparam /path/to/dhparam.pem;
+
+   ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+   ssl_ciphers \'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS\';
+   ssl_prefer_server_ciphers on;
+
+   add_header Strict-Transport-Security max-age=15768000;
+
+   ssl_stapling on;
+   ssl_stapling_verify on;
+   ssl_trusted_certificate /etc/ssl/appex/bundle.crt;
+   resolver 8.8.8.8 8.8.4.4;
+
+   access_log /var/log/nginx/odoo.access.log;
+   error_log /var/log/nginx/odoo.error.log;
+
+   proxy_read_timeout 720s;
+   proxy_connect_timeout 720s;
+   proxy_send_timeout 720s;
+   proxy_set_header X-Forwarded-Host \$host;
+   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+   proxy_set_header X-Forwarded-Proto \$scheme;
+   proxy_set_header X-Real-IP \$remote_addr;
+
+   location / {{
+     proxy_pass    http://127.0.0.1:{self.port};
+        proxy_redirect http://127.0.0.1:{self.port}/ \$scheme://\$host/;
+        proxy_cookie_domain 127.0.0.1 \$host;
+  }}
+
+   location /longpolling {{
+        proxy_pass http://127.0.0.1:8072;
+  }}
+   
+
+   location ~* /web/static/ {{
+       proxy_cache_valid 200 90m;
+       proxy_buffering    on;
+       expires 864000;
+       proxy_pass http://127.0.0.1:{self.port};
+  }}
+
+  # gzip
+  gzip_types text/css text/less text/plain text/xml application/xml application/json application/javascript;
+  gzip on;
+}}
+"""
+                # Create the Nginx configuration file and insert the configuration into it
+                subprocess.run(
+                    f"ssh {username}@{address} sudo touch /etc/nginx/sites-available/{self.instance_subdomain}.conf",
+                    shell=True)
+                subprocess.run(
+                    f"ssh {username}@{address} sudo chmod o+w /etc/nginx/sites-available/{self.instance_subdomain}.conf",
+                    shell=True)
+                subprocess.run(
+                    f'ssh {username}@{address} "echo \'{nginx_conf}\' | sudo tee /etc/nginx/sites-available/{self.instance_subdomain}.conf"',
+                    shell=True, check=True)
+                # Create a symbolic link to the Nginx configuration file
+                subprocess.run(
+                    f"ssh {username}@{address} sudo ln -s /etc/nginx/sites-available/{self.instance_subdomain}.conf /etc/nginx/sites-enabled/",
+                    shell=True)
+                # Restart Nginx
+                subprocess.run(f"ssh {username}@{address} sudo systemctl restart nginx", shell=True)
+
                 _logger.info("Creating Nginx configuration done!")
 
-            self.db_name = self.instance_token
-            first_run = self.with_context(first_run=True).run_odoo_instance()
-            self.env.cr.commit()
-            time.sleep(20)
-            if first_run:
-                client = erppeek.Client(server='http://%s' % self.instance_url)
-                user_admin_pass = str(random.randint(1000, 9999))
-                client.create_database(passwd='admin', database=self.db_name, user_password=user_admin_pass,
-                                       login="admin", country_code=self.country_id.code)
-                self.write({'user_admin_pass': user_admin_pass, 'user_ids': [
-                    (0, 0, {'name': 'Administrator', 'login': 'admin', 'password': user_admin_pass, 'type': 'admin'})]})
-                client.install('base')
-                # Install country-related modules
-                for module in self.country_id.module_ids:
-                    client.install(module.name)
-
+                self.db_name = f'{name}db'
+                first_run = self.with_context(first_run=True).run_odoo_instance()
+                if first_run:
+                    client = erppeek.Client(server=f'http://{self.instance_url}')
+                    user_admin_pass = str(random.randint(1000, 9999))
+                    client.create_database(passwd='admin', database=self.db_name, user_password=user_admin_pass,
+                                                       login="admin", country_code=self.country_id.code)
+                    self.write({'user_admin_pass': user_admin_pass, 'user_ids': [
+                                    (0, 0, {'name': 'Administrator', 'login': 'admin', 'password': user_admin_pass, 'type': 'admin'})]})
+                    client.install('base')
+                    # Install country-related modules
+                    for module in self.country_id.module_ids:
+                        client.install(module.name)
         except Exception as e:
             _logger.error(e)
 

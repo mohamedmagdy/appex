@@ -88,11 +88,11 @@ class OdooInstancesManagement(models.Model):
 
         return username, odoo_instances_address
 
-    def create_user(self, instance_url, db_name, count):
+    def create_user(self):
         time.sleep(40)
         created_user = []
         client = erppeek.Client(server='http://%s' % self.instance_url)
-        client.login('admin', self.user_admin_pass, db_name)
+        client.login('admin', self.user_admin_pass, self.db_name)
 
         # Create a client account
         password = random.randint(9999, 99999)
@@ -109,6 +109,10 @@ class OdooInstancesManagement(models.Model):
         created_user.append({"name": name, "login": username, "password": password, 'type': 'manager'})
 
         # Create Accountant Users using the number of users requested
+        if not self.users_count:
+            count = 0
+        else:
+            count = self.users_count
         for user_count in range(1, count + 1):
             password = random.randint(9999, 99999)
             username = 'accountant%s' % user_count
@@ -125,7 +129,7 @@ class OdooInstancesManagement(models.Model):
     # TODO: Change the path for the server
     def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=14):
         self.create_odoo_instance(path, version)
-        created_users = self.create_user(self.instance_url, self.db_name, self.users_count)
+        created_users = self.create_user()
         # created_api_user = self.create_api_user(self.instance_url, self.db_name)
         self.push_to_appex_portal(created_users)
 

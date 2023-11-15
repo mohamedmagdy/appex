@@ -89,7 +89,7 @@ class OdooInstancesManagement(models.Model):
         return username, odoo_instances_address
 
     def create_user(self, instance_url, db_name, count):
-        # time.sleep(40)
+        time.sleep(40)
         created_user = []
         client = erppeek.Client(server='http://%s' % self.instance_url)
         client.login('admin', self.user_admin_pass, db_name)

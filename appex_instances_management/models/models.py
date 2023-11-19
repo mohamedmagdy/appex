@@ -143,7 +143,7 @@ class OdooInstancesManagement(models.Model):
                                                       ['name', 'login', 'password', 'type'])
         if created_users and appex_response_api:
             request_data = {"message": "Instance: %s Created successfully!" % self.name,
-                            "data": {"id": self.id, "instance_id": self.instance_token, "url": self.instance_subdomain,
+                            "data": {"id": self.id, "instance_id": self.instance_token, "url": f"https://{self.instance_subdomain}",
                                      "users": created_users}}
             _logger.info(appex_response_api)
             _logger.info(request_data)

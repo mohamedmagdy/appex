@@ -127,8 +127,8 @@ class OdooInstancesManagement(models.Model):
         return created_user
 
     # TODO: Change the path for the server
-    def create_odoo_instance_by_api(self, path='/home/moh/tmpfolder', version=14):
-        self.create_odoo_instance(path, version)
+    def create_odoo_instance_by_api(self):
+        self.create_odoo_instance()
         created_users = self.create_user()
         # created_api_user = self.create_api_user(self.instance_url, self.db_name)
         self.push_to_appex_portal(created_users)
@@ -194,25 +194,36 @@ class OdooInstancesManagement(models.Model):
         except Exception as e:
             _logger.error(e)
 
-    def create_odoo_instance(self, path='/home/moh/tmpfolder', version=14):
+    def create_odoo_instance(self):
         name = self.instance_token
         unique_port = True
         while unique_port:
             port = random.randint(2000, 5999)
             unique_port = self.search([('port', '=', port)])
         try:
+            storage_username = 'ubuntu'
+            storage_server = '157.241.18.12'
+            db_directory = f'/mnt/database/{name}db'
+            app_directory = f'/mnt/odooapp/odooapp/{name}'
+            # Check if the db_directory exists, otherwise create it
+            subprocess.run(['ssh', '%s@%s' % (storage_username, storage_server), 'sudo', 'mkdir', '-p', db_directory])
+            # Check if the app_directory exists, otherwise create it
+            subprocess.run(['ssh', '%s@%s' % (storage_username, storage_server), 'sudo', 'mkdir', '-p', app_directory])
+
             username, address = self.get_access_parameters()
             # Create a separate PostgreSQL container for each Odoo instance
             subprocess.run(['ssh', '%s@%s' % (username, address), 'docker', 'service', 'create', '--name', f'{name}db',
                             '--replicas', '1', '-e', 'POSTGRES_USER=odoo', '-e', 'POSTGRES_PASSWORD=odoo', '-e',
-                            'POSTGRES_DB=postgres', '--mount', 'type=volume,destination=/var/lib/postgresql/data',
+                            'POSTGRES_DB=postgres', '--mount', f'type=volume,source={name},target=/var/lib/postgresql/data,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:{db_directory},volume-opt=o=addr={storage_server}',
                             '--network', 'my-network', 'postgres:13'])
             # Create the Odoo instance
             subprocess.run(
                 ['ssh', '%s@%s' % (username, address), 'docker', 'service', 'create', '--name', f'{name}', '--replicas',
-                 '1', '--publish', f'{port}:8069', '--mount', 'type=volume,destination=/var/lib/odoo', '--mount',
-                 'type=volume,destination=/mnt/extra-addons', '--network', 'my-network', '-e', f'HOST={name}db',
-                 'odoo:%s' % version, '-i', 'base'])
+                 '1', '--publish', f'{port}:8069', '--mount', f'type=volume,source=odoo1,target=/var/lib/odoo,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:{app_directory},volume-opt=o=addr={storage_server}',
+                 '--mount', f'type=volume,source=odoo-addons,target=/mnt/extra-addons,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:/mnt/odooapp/extra-addons,volume-opt=o=addr={storage_server}',
+                 '--mount', f'type=volume,source=odoo-config,target=/etc/odoo,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:/mnt/odooapp/configfile,volume-opt=o=addr={storage_server}',
+                 ' --network', 'my-network', '-e', f'HOST={name}db', 'odoo:14', '-i', 'base'])
+
             self.port = port
             url = self.env['ir.config_parameter'].get_param('appex_instances_management.odoo_instances_address')
             base_url = url.startswith('http') and url.split('/')[-1] or url

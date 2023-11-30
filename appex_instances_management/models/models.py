@@ -219,7 +219,7 @@ class OdooInstancesManagement(models.Model):
             # Create the Odoo instance
             subprocess.run(
                 ['ssh', '%s@%s' % (username, address), 'docker', 'service', 'create', '--name', f'{name}', '--replicas',
-                 '1', '--publish', f'{port}:8069', '--mount', f'type=volume,source=odoo1,target=/var/lib/odoo,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:{app_directory},volume-opt=o=addr={storage_server}',
+                 '1', '--publish', f'{port}:8069', '--mount', f'type=volume,source={name},target=/var/lib/odoo,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:{app_directory},volume-opt=o=addr={storage_server}',
                  '--mount', f'type=volume,source=odoo-addons,target=/mnt/extra-addons,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:/mnt/odooapp/extra-addons,volume-opt=o=addr={storage_server}',
                  '--mount', f'type=volume,source=odoo-config,target=/etc/odoo,volume-driver=local,volume-opt=type=nfs,volume-opt=device=:/mnt/odooapp/configfile,volume-opt=o=addr={storage_server}',
                  ' --network', 'my-network', '-e', f'HOST={name}db', 'odoo:14', '-i', 'base'])
